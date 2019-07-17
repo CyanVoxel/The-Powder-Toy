@@ -29,7 +29,7 @@ Element_SSTL::Element_SSTL()
 	Flammable = 0;
 	Explosive = 0;
 	Meltable = 1;
-	Hardness = 50;
+	Hardness = 60;
 
 	Weight = 100;
 
@@ -66,9 +66,9 @@ int Element_SSTL::update(UPDATE_FUNC_ARGS)
 			for (int ry = -1; ry <= 1; ry++)
 				if ((!rx != !ry) && BOUNDS_CHECK)
 				{
-					if (TYP(pmap[y + ry][x + rx]) == PT_SSTL 
-						|| TYP(pmap[y + ry][x + rx]) == PT_TTAN
-						|| TYP(pmap[y + ry][x + rx]) == PT_STEL)
+					if (TYP(pmap[y + ry][x + rx]) == PT_SSTL
+						|| TYP(pmap[y + ry][x + rx]) == PT_STEL
+						|| TYP(pmap[y + ry][x + rx]) == PT_TTAN)
 						sstl++;
 				}
 	}
