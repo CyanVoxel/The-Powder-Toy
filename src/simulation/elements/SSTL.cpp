@@ -41,8 +41,8 @@ Element_SSTL::Element_SSTL()
 
 	LowPressure = IPL;
 	LowPressureTransition = NT;
-	HighPressure = IPH;
-	HighPressureTransition = NT;
+	HighPressure = 200.0f;
+	HighPressureTransition = PT_STEL;
 	LowTemperature = ITL;
 	LowTemperatureTransition = NT;
 	HighTemperature = 1800.0f;
