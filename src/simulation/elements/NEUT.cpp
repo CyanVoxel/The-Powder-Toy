@@ -65,6 +65,15 @@ int Element_NEUT::update(UPDATE_FUNC_ARGS)
 					parts[i].vx *= 0.995;
 					parts[i].vy *= 0.995;
 					break;
+
+				case PT_RDFL:
+					if (RNG::Ref().chance(pressureFactor + 1 + (parts[ID(r)].life / 100), 1000))
+					{
+						DeutExplosion(sim, parts[ID(r)].life, x + rx, y + ry, restrict_flt(parts[ID(r)].temp + parts[ID(r)].life * 500.0f, MIN_TEMP, MAX_TEMP), PT_PLUT);
+						sim->kill_part(ID(r));
+					}
+					break;
+
 				case PT_PLUT:
 					if (RNG::Ref().chance(pressureFactor, 1000))
 					{
@@ -87,6 +96,7 @@ int Element_NEUT::update(UPDATE_FUNC_ARGS)
 						Element_FIRE::update(UPDATE_FUNC_SUBCALL_ARGS);
 					}
 					break;
+
 #ifdef SDEUT
 				case PT_DEUT:
 					if (RNG::Ref().chance(pressureFactor + 1 + (parts[ID(r)].life/100), 1000))
