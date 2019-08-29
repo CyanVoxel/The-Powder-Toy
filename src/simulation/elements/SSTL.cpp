@@ -41,7 +41,7 @@ Element_SSTL::Element_SSTL()
 
 	LowPressure = IPL;
 	LowPressureTransition = NT;
-	HighPressure = 200.0f;
+	HighPressure = 100.0f;
 	HighPressureTransition = PT_STEL;
 	LowTemperature = ITL;
 	LowTemperatureTransition = NT;
@@ -79,10 +79,6 @@ int Element_SSTL::update(UPDATE_FUNC_ARGS)
 		sim->air->bmap_blockairh[y / CELL][x / CELL] = 0x8;
 	}
 
-	return 0;
-succ:
-	sim->part_change_type(i, x, y, PT_IRON);
-	parts[i].tmp = RNG::Ref().between(20, 29);
 	return 0;
 }
 
