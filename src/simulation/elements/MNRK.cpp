@@ -1,0 +1,64 @@
+#include "simulation/ElementCommon.h"
+//#TPT-Directive ElementClass Element_MNRK PT_MNRK 67
+Element_MNRK::Element_MNRK()
+{
+	Identifier = "DEFAULT_PT_MNRK";
+	Name = "MNRK";
+	Colour = PIXPACK(0xC0C0C0);
+	MenuVisible = 1;
+	MenuSection = SC_SOLIDS;
+	Enabled = 1;
+
+	Advection = 0.0f;
+	AirDrag = 0.00f * CFDS;
+	AirLoss = 0.90f;
+	Loss = 0.00f;
+	Collision = 0.0f;
+	Gravity = 0.0f;
+	Diffusion = 0.00f;
+	HotAir = 0.000f * CFDS;
+	Falldown = 0;
+
+	Flammable = 0;
+	Explosive = 0;
+	Meltable = 0;
+	Hardness = 1;
+
+	Weight = 90;
+
+	Temperature = R_TEMP + 0.0f + 273.15f;
+	HeatConduct = 251;
+	Description = "Moonrock.";
+
+	Properties = TYPE_SOLID | PROP_HOT_GLOW;
+
+	LowPressure = IPL;
+	LowPressureTransition = NT;
+	HighPressure = 8.8f;
+	HighPressureTransition = PT_MNDT;
+	LowTemperature = ITL;
+	LowTemperatureTransition = NT;
+	HighTemperature = 1223.0f;
+	HighTemperatureTransition = PT_LAVA;
+
+	Update = NULL;
+	Graphics = &Element_MNRK::graphics;
+}
+
+//#TPT-Directive ElementHeader Element_MNRK static int graphics(GRAPHICS_FUNC_ARGS)
+int Element_MNRK::graphics(GRAPHICS_FUNC_ARGS)
+{
+	if (cpart->tmp == 1)
+	{
+		*pixel_mode |= FIRE_ADD;
+		*colb += 100;
+
+		*firea = 40;
+		*firer = *colr;
+		*fireg = *colg;
+		*fireb = *colb;
+	}
+	return 0;
+}
+
+Element_MNRK::~Element_MNRK() {}

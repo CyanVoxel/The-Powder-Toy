@@ -38,7 +38,7 @@ Element_GPHT::Element_GPHT()
 	HighPressureTransition = NT;
 	LowTemperature = ITL;
 	LowTemperatureTransition = NT;
-	HighTemperature = 4273.15f;
+	HighTemperature = 6200.0f;
 	HighTemperatureTransition = PT_LAVA;
 
 	Update = &Element_GPHT::update;
