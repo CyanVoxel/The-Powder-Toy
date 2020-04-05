@@ -54,7 +54,7 @@ void initLegacyProps()
 			legacyTransitionNames.insert(std::pair<ByteString, StructProperty>("presLowType", prop));
 		else if (prop.Name == "HighPressure")
 			legacyTransitionNames.insert(std::pair<ByteString, StructProperty>("presHighValue", prop));
-		else if (prop.Name == "HighressureTransition")
+		else if (prop.Name == "HighPressureTransition")
 			legacyTransitionNames.insert(std::pair<ByteString, StructProperty>("presHighType", prop));
 		else if (prop.Name == "LowTemperature")
 			legacyTransitionNames.insert(std::pair<ByteString, StructProperty>("tempLowValue", prop));
@@ -396,16 +396,26 @@ int luacon_graphicsReplacement(GRAPHICS_FUNC_ARGS, int i)
 	}
 	else
 	{
-		cache = luaL_optint(luacon_ci->l, -10, 0);
-		*pixel_mode = luaL_optint(luacon_ci->l, -9, *pixel_mode);
-		*cola = luaL_optint(luacon_ci->l, -8, *cola);
-		*colr = luaL_optint(luacon_ci->l, -7, *colr);
-		*colg = luaL_optint(luacon_ci->l, -6, *colg);
-		*colb = luaL_optint(luacon_ci->l, -5, *colb);
-		*firea = luaL_optint(luacon_ci->l, -4, *firea);
-		*firer = luaL_optint(luacon_ci->l, -3, *firer);
-		*fireg = luaL_optint(luacon_ci->l, -2, *fireg);
-		*fireb = luaL_optint(luacon_ci->l, -1, *fireb);
+		bool valid = true;
+		for (int i = -10; i < 0; i++)
+			if (!lua_isnumber(luacon_ci->l, i) && !lua_isnil(luacon_ci->l, i))
+			{
+				valid = false;
+				break;
+			}
+		if (valid)
+		{
+			cache = luaL_optint(luacon_ci->l, -10, 0);
+			*pixel_mode = luaL_optint(luacon_ci->l, -9, *pixel_mode);
+			*cola = luaL_optint(luacon_ci->l, -8, *cola);
+			*colr = luaL_optint(luacon_ci->l, -7, *colr);
+			*colg = luaL_optint(luacon_ci->l, -6, *colg);
+			*colb = luaL_optint(luacon_ci->l, -5, *colb);
+			*firea = luaL_optint(luacon_ci->l, -4, *firea);
+			*firer = luaL_optint(luacon_ci->l, -3, *firer);
+			*fireg = luaL_optint(luacon_ci->l, -2, *fireg);
+			*fireb = luaL_optint(luacon_ci->l, -1, *fireb);
+		}
 		lua_pop(luacon_ci->l, 10);
 	}
 	return cache;
@@ -1226,7 +1236,7 @@ int luatpt_gravity(lua_State* l)
 	int acount = lua_gettop(l);
 	if (acount == 0)
 	{
-		lua_pushinteger(l, luacon_sim->grav->ngrav_enable);
+		lua_pushinteger(l, luacon_sim->grav->IsEnabled() ? 1 : 0);
 		return 1;
 	}
 	int gravstate = luaL_checkint(l, 1);

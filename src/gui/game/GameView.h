@@ -24,6 +24,9 @@ namespace ui
 	class Textbox;
 }
 
+class SplitButton;
+
+class MenuButton;
 class Renderer;
 class VideoBuffer;
 class ToolButton;
@@ -69,7 +72,6 @@ private:
 	int screenshotIndex;
 	bool recording;
 	int recordingFolder;
-	int recordingIndex;
 
 	ui::Point currentPoint, lastPoint;
 	GameController * c;
@@ -77,21 +79,23 @@ private:
 	Brush * activeBrush;
 	//UI Elements
 	std::vector<ui::Button*> quickOptionButtons;
-	std::vector<ui::Button*> menuButtons;
+
+	std::vector<MenuButton*> menuButtons;
+
 	std::vector<ToolButton*> toolButtons;
 	std::vector<ui::Component*> notificationComponents;
 	std::deque<std::pair<String, int> > logEntries;
 	ui::Button * scrollBar;
 	ui::Button * searchButton;
 	ui::Button * reloadButton;
-	ui::Button * saveSimulationButton;
+	SplitButton * saveSimulationButton;
 	bool saveSimulationButtonEnabled;
 	bool saveReuploadAllowed;
 	ui::Button * downVoteButton;
 	ui::Button * upVoteButton;
 	ui::Button * tagSimulationButton;
 	ui::Button * clearSimButton;
-	ui::Button * loginButton;
+	SplitButton * loginButton;
 	ui::Button * simulationOptionButton;
 	ui::Button * displayModeButton;
 	ui::Button * pauseButton;
@@ -196,6 +200,7 @@ public:
 	void OnTick(float dt) override;
 	void OnDraw() override;
 	void OnBlur() override;
+	void OnFileDrop(ByteString filename) override;
 
 	//Top-level handlers, for Lua interface
 	void DoExit() override;
@@ -208,9 +213,6 @@ public:
 	void DoKeyPress(int key, int scan, bool repeat, bool shift, bool ctrl, bool alt) override;
 	void DoKeyRelease(int key, int scan, bool repeat, bool shift, bool ctrl, bool alt) override;
 
-	class MenuAction;
-	class ToolAction;
-	class OptionAction;
 	class OptionListener;
 };
 

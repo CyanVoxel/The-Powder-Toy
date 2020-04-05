@@ -1,5 +1,5 @@
-#include "simulation/ElementCommon.h"
-#include "simulation/StructProperty.h"
+#include "ElementCommon.h"
+#include "StructProperty.h"
 
 Element::Element():
 	Identifier("DEFAULT_INVALID"),
@@ -15,6 +15,7 @@ Element::Element():
 	Loss(1.0f),
 	Collision(0.0f),
 	Gravity(0.0f),
+	NewtonianGravity(1.0f),
 	Diffusion(0.0f),
 	HotAir(0.0f * CFDS),
 	Falldown(0),
@@ -27,7 +28,6 @@ Element::Element():
 
 	Weight(50),
 
-	Temperature(273.15f),
 	HeatConduct(128),
 	Description("No description"),
 
@@ -42,10 +42,13 @@ Element::Element():
 	HighTemperature(ITH),
 	HighTemperatureTransition(NT),
 
-	Update(NULL),
+	Update(nullptr),
 	Graphics(&Element::defaultGraphics),
-	IconGenerator(NULL)
+	CtypeDraw(nullptr),
+	IconGenerator(nullptr)
 {
+	memset(&DefaultProperties, 0, sizeof(Particle));
+	DefaultProperties.temp = R_TEMP + 273.15f;
 }
 
 std::vector<StructProperty> const &Element::GetProperties()
@@ -63,6 +66,7 @@ std::vector<StructProperty> const &Element::GetProperties()
 		{ "Loss",                      StructProperty::Float,    offsetof(Element, Loss                     ) },
 		{ "Collision",                 StructProperty::Float,    offsetof(Element, Collision                ) },
 		{ "Gravity",                   StructProperty::Float,    offsetof(Element, Gravity                  ) },
+		{ "NewtonianGravity",          StructProperty::Float,    offsetof(Element, NewtonianGravity         ) },
 		{ "Diffusion",                 StructProperty::Float,    offsetof(Element, Diffusion                ) },
 		{ "HotAir",                    StructProperty::Float,    offsetof(Element, HotAir                   ) },
 		{ "Falldown",                  StructProperty::Integer,  offsetof(Element, Falldown                 ) },
@@ -72,7 +76,7 @@ std::vector<StructProperty> const &Element::GetProperties()
 		{ "Hardness",                  StructProperty::Integer,  offsetof(Element, Hardness                 ) },
 		{ "PhotonReflectWavelengths",  StructProperty::UInteger, offsetof(Element, PhotonReflectWavelengths ) },
 		{ "Weight",                    StructProperty::Integer,  offsetof(Element, Weight                   ) },
-		{ "Temperature",               StructProperty::Float,    offsetof(Element, Temperature              ) },
+		{ "Temperature",               StructProperty::Float,    offsetof(Element, DefaultProperties.temp   ) },
 		{ "HeatConduct",               StructProperty::UChar,    offsetof(Element, HeatConduct              ) },
 		{ "Description",               StructProperty::String,   offsetof(Element, Description              ) },
 		{ "State",                     StructProperty::Removed,  0                                            },
@@ -228,4 +232,40 @@ int Element::defaultGraphics(GRAPHICS_FUNC_ARGS)
 		*pixel_mode |= DECO_FIRE;
 	}
 	return 1;
+}
+
+bool Element::basicCtypeDraw(CTYPEDRAW_FUNC_ARGS)
+{
+	if (sim->parts[i].type == t || sim->elements[t].Properties & PROP_NOCTYPEDRAW)
+	{
+		return false;
+	}
+	sim->parts[i].ctype = t;
+	return true;
+}
+
+bool Element::ctypeDrawVInTmp(CTYPEDRAW_FUNC_ARGS)
+{
+	if (!Element::basicCtypeDraw(CTYPEDRAW_FUNC_SUBCALL_ARGS))
+	{
+		return false;
+	}
+	if (t == PT_LIFE && v >= 0 && v < NGOL)
+	{
+		sim->parts[i].tmp = v;
+	}
+	return true;
+}
+
+bool Element::ctypeDrawVInCtype(CTYPEDRAW_FUNC_ARGS)
+{
+	if (!Element::basicCtypeDraw(CTYPEDRAW_FUNC_SUBCALL_ARGS))
+	{
+		return false;
+	}
+	if (t == PT_LIFE && v >= 0 && v < NGOL)
+	{
+		sim->parts[i].ctype |= PMAPID(v);
+	}
+	return true;
 }

@@ -77,18 +77,9 @@ void Engine::Exit()
 
 void Engine::ConfirmExit()
 {
-	class ExitConfirmation: public ConfirmDialogueCallback {
-	public:
-		ExitConfirmation() {}
-		void ConfirmCallback(ConfirmPrompt::DialogueResult result) override {
-			if (result == ConfirmPrompt::ResultOkay)
-			{
-				ui::Engine::Ref().Exit();
-			}
-		}
-		virtual ~ExitConfirmation() { }
-	};
-	new ConfirmPrompt("You are about to quit", "Are you sure you want to exit the game?", new ExitConfirmation());
+	new ConfirmPrompt("You are about to quit", "Are you sure you want to exit the game?", { [] {
+		ui::Engine::Ref().Exit();
+	} });
 }
 
 void Engine::ShowWindow(Window * window)
@@ -312,4 +303,10 @@ void Engine::onClose()
 {
 	if (state_)
 		state_->DoExit();
+}
+
+void Engine::onFileDrop(ByteString filename)
+{
+	if (state_)
+		state_->DoFileDrop(filename);
 }

@@ -114,7 +114,7 @@ public:
 	void SetMessageOfTheDay(String message);
 	String GetMessageOfTheDay();
 
-	void Initialise(ByteString proxyString);
+	void Initialise(ByteString proxyString, bool disableNetwork);
 	bool IsFirstRun();
 
 	int MakeDirectory(const char * dirname);
@@ -147,6 +147,7 @@ public:
 	std::vector<std::pair<ByteString, int> > * GetTags(int start, int count, String query, int & resultCount);
 
 	SaveInfo * GetSave(int saveID, int saveDate);
+	SaveFile * LoadSaveFile(ByteString filename);
 
 	RequestStatus DeleteSave(int saveID);
 	RequestStatus ReportSave(int saveID, String message);

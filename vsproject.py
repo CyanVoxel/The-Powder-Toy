@@ -1,4 +1,6 @@
+#!/usr/bin/env python3
 import os
+from pathlib import Path
 import uuid
 
 cl_compile = []
@@ -7,14 +9,22 @@ source_dirs = set()
 for root, subdirs, files in os.walk('src'):
 	for file in [os.path.join(root, f) for f in files]:
 		lowerfile = file.lower()
+		add_source_dir = False
 		if lowerfile.endswith('.cpp') or lowerfile.endswith('.c'):
 			cl_compile.append(file)
-			source_dirs.add(os.path.dirname(file))
+			add_source_dir = True
 		if lowerfile.endswith('.hpp') or lowerfile.endswith('.h'):
 			cl_include.append(file)
+			add_source_dir = True
+		if add_source_dir:
+			path = Path(root)
+			for i in range(len(path.parents) - 1):
+				parent = path.parents[i]
+				if not str(parent) in source_dirs:
+					source_dirs.add(str(parent))
 			source_dirs.add(os.path.dirname(file))
 
-sln = open('The-Powder-Toy.sln', 'w')
+sln = open("The-Powder-Toy.sln", 'w')
 sln.write(r"""Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.40629.0
@@ -42,7 +52,7 @@ EndGlobal
 """)
 sln.close()
 
-vcxproj = open('The-Powder-Toy.vcxproj', 'w')
+vcxproj = open("The-Powder-Toy.vcxproj", 'w')
 vcxproj.write(r"""<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
@@ -68,17 +78,17 @@ vcxproj.write(r"""<?xml version="1.0" encoding="utf-8"?>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -97,21 +107,21 @@ vcxproj.write(r"""<?xml version="1.0" encoding="utf-8"?>
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Build\</OutDir>
     <TargetName>Powder</TargetName>
-    <IncludePath>$(ProjectDir)includes;$(ProjectDir)includes/SDL2;$(ProjectDir)includes/luajit-2.0;$(ProjectDir)data;$(ProjectDir)src;$(ProjectDir)generated;$(ProjectDir)resources;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)includes;$(ProjectDir)includes/SDL2;$(ProjectDir)includes/luajit-2.0;$(ProjectDir)data;$(ProjectDir)src;$(ProjectDir)resources;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)Libraries;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Build\</OutDir>
     <TargetName>Powder</TargetName>
-    <IncludePath>$(ProjectDir)includes;$(ProjectDir)includes/SDL2;$(ProjectDir)includes/luajit-2.0;$(ProjectDir)data;$(ProjectDir)src;$(ProjectDir)generated;$(ProjectDir)resources;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)includes;$(ProjectDir)includes/SDL2;$(ProjectDir)includes/luajit-2.0;$(ProjectDir)data;$(ProjectDir)src;$(ProjectDir)resources;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)Libraries;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Static|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)Build\</OutDir>
     <TargetName>Powder</TargetName>
-    <IncludePath>$(ProjectDir)includes;$(ProjectDir)includes/SDL2;$(ProjectDir)includes/luajit-2.0;$(ProjectDir)data;$(ProjectDir)src;$(ProjectDir)generated;$(ProjectDir)resources;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)includes;$(ProjectDir)includes/SDL2;$(ProjectDir)includes/luajit-2.0;$(ProjectDir)data;$(ProjectDir)src;$(ProjectDir)resources;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)Staticlibs;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -120,9 +130,10 @@ vcxproj.write(r"""<?xml version="1.0" encoding="utf-8"?>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level1</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <Optimization>Disabled</Optimization>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <TreatWarningAsError>true</TreatWarningAsError>
+      <ObjectFileName>$(IntDir)\%(RelativeDir)</ObjectFileName>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -137,9 +148,10 @@ vcxproj.write(r"""<?xml version="1.0" encoding="utf-8"?>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level1</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <TreatWarningAsError>true</TreatWarningAsError>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <ObjectFileName>$(IntDir)\%(RelativeDir)</ObjectFileName>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -156,9 +168,10 @@ vcxproj.write(r"""<?xml version="1.0" encoding="utf-8"?>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WarningLevel>Level1</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <FloatingPointModel>Fast</FloatingPointModel>
-      <TreatWarningAsError>true</TreatWarningAsError>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
+      <ObjectFileName>$(IntDir)\%(RelativeDir)</ObjectFileName>
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
@@ -166,7 +179,7 @@ vcxproj.write(r"""<?xml version="1.0" encoding="utf-8"?>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>SDL2.lib;SDL2main.lib;shell32.lib;libbz2.lib;pthreadVC2.lib;luajit2.0.lib;libfftw3f-3.lib;zlib.lib;libcurl.lib;ws2_32.lib;Wldap32.lib;crypt32.lib;winmm.lib;dxguid.lib;imm32.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;shell32.lib;libbz2.lib;pthreadVC2.lib;luajit2.0.lib;libfftw3f-3.lib;zlib.lib;libcurl.lib;ws2_32.lib;Wldap32.lib;crypt32.lib;winmm.lib;dxguid.lib;imm32.lib;version.lib;SetupApi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
@@ -178,10 +191,8 @@ vcxproj.write(r"""<?xml version="1.0" encoding="utf-8"?>
     <ClCompile Include="data\hmap.cpp" />
     <ClCompile Include="data\icon.cpp" />
     <ClCompile Include="data\images.cpp" />
-    <ClCompile Include="generated\ElementClasses.cpp" />
-    <ClCompile Include="generated\ToolClasses.cpp" />
-""")
-vcxproj.write(''.join([('<ClCompile Include="' + p + '" />') for p in cl_compile]))
+    """)
+vcxproj.write('\n    '.join([('<ClCompile Include="' + p + '" />') for p in cl_compile]))
 vcxproj.write(r"""
   </ItemGroup>
   <ItemGroup>
@@ -192,18 +203,15 @@ vcxproj.write(r"""
     <ClInclude Include="data\images.h" />
     <ClInclude Include="data\IntroText.h" />
     <ClInclude Include="data\Shaders.h" />
-    <ClInclude Include="generated\ElementClasses.h" />
-    <ClInclude Include="generated\ToolClasses.h" />
     <ClInclude Include="resources\resource.h" />
-""")
-vcxproj.write(''.join([('<ClInclude Include="' + p + '" />') for p in cl_include]))
+    """)
+vcxproj.write('\n    '.join([('<ClInclude Include="' + p + '" />') for p in cl_include]))
 vcxproj.write(r"""
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="resources\powder-res.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="generator.py" />
     <None Include="vsproject.py" />
     <None Include="README.md" />
     <None Include="SConscript" />
@@ -221,7 +229,7 @@ vcxproj.write(r"""
 """)
 vcxproj.close()
 
-filters = open('The-Powder-Toy.vcxproj.filters', 'w')
+filters = open("The-Powder-Toy.vcxproj.filters", 'w')
 filters.write(r"""<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
@@ -236,31 +244,16 @@ filters.write(r"""<?xml version="1.0" encoding="utf-8"?>
     <Filter Include="data">
       <UniqueIdentifier>{fc5911e1-d5ba-4da3-9cfa-5631c6914487}</UniqueIdentifier>
     </Filter>
-    <Filter Include="generated">
-      <UniqueIdentifier>{bfb47e29-68f3-48bd-86c2-46b9f63d2597}</UniqueIdentifier>
-    </Filter>
-""")
-filters.write(''.join([('<Filter Include="' + p + '"><UniqueIdentifier>{' + str(uuid.uuid4()) + '}</UniqueIdentifier></Filter>') for p in source_dirs]))
+    """)
+filters.write('\n    '.join([('<Filter Include="' + p + '">\n      <UniqueIdentifier>{' + str(uuid.uuid4()) + '}</UniqueIdentifier>\n    </Filter>') for p in source_dirs]))
 filters.write(r"""
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="generated\ElementClasses.cpp">
-      <Filter>generated</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\ToolClasses.cpp">
-      <Filter>generated</Filter>
-    </ClCompile>
-""")
-filters.write(''.join([('<ClCompile Include="' + p + '"><Filter>' + os.path.dirname(p) + '</Filter></ClCompile>') for p in cl_compile]))
+    """)
+filters.write('\n    '.join([('<ClCompile Include="' + p + '">\n      <Filter>' + os.path.dirname(p) + '</Filter>\n    </ClCompile>') for p in cl_compile]))
 filters.write(r"""
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="generated\ElementClasses.h">
-      <Filter>generated</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ToolClasses.h">
-      <Filter>generated</Filter>
-    </ClInclude>
     <ClInclude Include="src\simulation\elements\Element.h">
       <Filter>src\simulation</Filter>
     </ClInclude>
@@ -285,8 +278,8 @@ filters.write(r"""
     <ClInclude Include="data\Shaders.h">
       <Filter>data</Filter>
     </ClInclude>
-""")
-filters.write(''.join([('<ClInclude Include="' + p + '"><Filter>' + os.path.dirname(p) + '</Filter></ClInclude>') for p in cl_include]))
+    """)
+filters.write('\n    '.join([('<ClInclude Include="' + p + '">\n      <Filter>' + os.path.dirname(p) + '</Filter>\n    </ClInclude>') for p in cl_include]))
 filters.write(r"""
     <ClInclude Include="resources\resource.h">
       <Filter>resources</Filter>
@@ -307,7 +300,6 @@ filters.write(r"""
     <None Include="src\graphics\RasterDrawMethods.inl">
       <Filter>src\graphics</Filter>
     </None>
-    <None Include="generator.py" />
     <None Include="vsproject.py" />
     <None Include="SConstruct" />
     <None Include="SConscript" />

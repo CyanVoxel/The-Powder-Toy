@@ -46,7 +46,7 @@ void OptionsModel::SetAmbientHeatSimulation(bool state)
 
 bool OptionsModel::GetNewtonianGravity()
 {
-	return sim->grav->ngrav_enable?true:false;
+	return sim->grav->IsEnabled();
 }
 
 void OptionsModel::SetNewtonianGravity(bool state)
@@ -169,6 +169,16 @@ void OptionsModel::SetFastQuit(bool fastquit)
 	notifySettingsChanged();
 }
 
+int OptionsModel::GetDecoSpace()
+{
+	return gModel->GetDecoSpace();
+}
+void OptionsModel::SetDecoSpace(int decoSpace)
+{
+	gModel->SetDecoSpace(decoSpace);
+	notifySettingsChanged();
+}
+
 bool OptionsModel::GetShowAvatars()
 {
 	return Client::Ref().GetPrefBool("ShowAvatars", true);
@@ -201,6 +211,18 @@ void OptionsModel::SetIncludePressure(bool includePressure)
 {
 	Client::Ref().SetPref("Simulation.IncludePressure", includePressure);
 	gModel->SetIncludePressure(includePressure);
+	notifySettingsChanged();
+}
+
+bool OptionsModel::GetPerfectCircle()
+{
+	return Client::Ref().GetPrefBool("PerfectCircleBrush", true);
+}
+
+void OptionsModel::SetPerfectCircle(bool perfectCircle)
+{
+	Client::Ref().SetPref("PerfectCircleBrush", perfectCircle);
+	gModel->SetPerfectCircle(perfectCircle);
 	notifySettingsChanged();
 }
 

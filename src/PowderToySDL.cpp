@@ -1,5 +1,6 @@
 #ifndef RENDERER
 
+#include "common/tpt-minmax.h"
 #include <map>
 #include <ctime>
 #include <climits>
@@ -337,6 +338,10 @@ std::map<ByteString, ByteString> readArguments(int argc, char * argv[])
 			i++;
 			break;
 		}
+		else if (!strncmp(argv[i], "disable-network", 16))
+		{
+			arguments["disable-network"] = "true";
+		}
 	}
 	return arguments;
 }
@@ -346,7 +351,7 @@ unsigned int lastTick = 0;
 unsigned int lastFpsUpdate = 0;
 float fps = 0;
 ui::Engine * engine = NULL;
-bool showDoubleScreenDialog = false;
+bool showLargeScreenDialog = false;
 float currentWidth, currentHeight;
 
 int mousex = 0, mousey = 0;
@@ -395,6 +400,10 @@ void EventProcess(SDL_Event event)
 		engine->onMouseMove(mousex, mousey);
 
 		hasMouseMoved = true;
+		break;
+	case SDL_DROPFILE:
+		engine->onFileDrop(event.drop.file);
+		SDL_free(event.drop.file);
 		break;
 	case SDL_MOUSEBUTTONDOWN:
 		// if mouse hasn't moved yet, sdl will send 0,0. We don't want that
@@ -472,12 +481,12 @@ void EventProcess(SDL_Event event)
 	}
 }
 
-void DoubleScreenDialog()
+void LargeScreenDialog()
 {
 	StringBuilder message;
-	message << "Switching to double size mode since your screen was determined to be large enough: ";
-	message << desktopWidth << "x" << desktopHeight << " detected, " << WINDOWW*2 << "x" << WINDOWH*2 << " required";
-	message << "\nTo undo this, hit Cancel. You can toggle double size mode in settings at any time.";
+	message << "Switching to " << scale << "x size mode since your screen was determined to be large enough: ";
+	message << desktopWidth << "x" << desktopHeight << " detected, " << WINDOWW*scale << "x" << WINDOWH*scale << " required";
+	message << "\nTo undo this, hit Cancel. You can change this in settings at any time.";
 	if (!ConfirmPrompt::Blocking("Large screen detected", message.Build()))
 	{
 		Client::Ref().SetPref("Scale", 1);
@@ -539,10 +548,10 @@ void EngineProcess()
 			lastTick = frameStart;
 			Client::Ref().Tick();
 		}
-		if (showDoubleScreenDialog)
+		if (showLargeScreenDialog)
 		{
-			showDoubleScreenDialog = false;
-			DoubleScreenDialog();
+			showLargeScreenDialog = false;
+			LargeScreenDialog();
 		}
 	}
 #ifdef DEBUG
@@ -625,6 +634,24 @@ void ChdirToDataDirectory()
 #endif
 }
 
+constexpr int SCALE_MAXIMUM = 10;
+constexpr int SCALE_MARGIN = 30;
+
+int GuessBestScale()
+{
+	const int widthNoMargin = desktopWidth - SCALE_MARGIN;
+	const int widthGuess = widthNoMargin / WINDOWW;
+
+	const int heightNoMargin = desktopHeight - SCALE_MARGIN;
+	const int heightGuess = heightNoMargin / WINDOWH;
+
+	int guess = std::min(widthGuess, heightGuess);
+	if(guess < 1 || guess > SCALE_MAXIMUM)
+		guess = 1;
+
+	return guess;
+}
+
 int main(int argc, char * argv[])
 {
 #if defined(_DEBUG) && defined(_MSC_VER)
@@ -689,20 +716,27 @@ int main(int argc, char * argv[])
 		proxyString = (Client::Ref().GetPrefByteString("Proxy", ""));
 	}
 
-	Client::Ref().Initialise(proxyString);
+	bool disableNetwork = false;
+	if (arguments.find("disable-network") != arguments.end())
+		disableNetwork = true;
+
+	Client::Ref().Initialise(proxyString, disableNetwork);
 
 	// TODO: maybe bind the maximum allowed scale to screen size somehow
-	if(scale < 1 || scale > 10)
+	if(scale < 1 || scale > SCALE_MAXIMUM)
 		scale = 1;
 
 	SDLOpen();
-	// TODO: mabe make a nice loop that automagically finds the optimal scale
-	if (Client::Ref().IsFirstRun() && desktopWidth > WINDOWW*2+30 && desktopHeight > WINDOWH*2+30)
+
+	if (Client::Ref().IsFirstRun())
 	{
-		scale = 2;
-		Client::Ref().SetPref("Scale", 2);
-		SDL_SetWindowSize(sdl_window, WINDOWW * 2, WINDOWH * 2);
-		showDoubleScreenDialog = true;
+		scale = GuessBestScale();
+		if (scale > 1)
+		{
+			Client::Ref().SetPref("Scale", scale);
+			SDL_SetWindowSize(sdl_window, WINDOWW * scale, WINDOWH * scale);
+			showLargeScreenDialog = true;
+		}
 	}
 
 #ifdef OGLI
@@ -839,13 +873,26 @@ int main(int argc, char * argv[])
 
 #else // FONTEDITOR
 		if(argc <= 1)
-			throw std::runtime_error("Not enough arguments");
-		engine->ShowWindow(new FontEditor(argv[1]));
+			throw std::runtime_error("Usage: \n"
+				"    Edit the font:\n"
+				"        " + ByteString(argv[0]) + " ./data/font.cpp\n"
+				"    Copy characters from source to target:\n"
+				"        " + ByteString(argv[0]) + " <target/font.cpp> <source/font.cpp>\n");
+		if(argc <= 2)
+		{
+			engine->ShowWindow(new FontEditor(argv[1]));
+			EngineProcess();
+			SaveWindowPosition();
+		}
+		else
+		{
+			FontEditor(argv[1], argv[2]);
+		}
 #endif
-
+#ifndef FONTEDITOR
 		EngineProcess();
-
 		SaveWindowPosition();
+#endif
 
 #if !defined(DEBUG) && !defined(_DEBUG)
 	}

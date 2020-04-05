@@ -33,9 +33,17 @@ SaveRenderer::SaveRenderer(){
 #endif
 }
 
-VideoBuffer * SaveRenderer::Render(GameSave * save, bool decorations, bool fire)
+VideoBuffer * SaveRenderer::Render(GameSave * save, bool decorations, bool fire, Renderer *renderModeSource)
 {
 	std::lock_guard<std::mutex> gx(renderMutex);
+
+	ren->ResetModes();
+	if (renderModeSource)
+	{
+		ren->SetRenderMode(renderModeSource->GetRenderMode());
+		ren->SetDisplayMode(renderModeSource->GetDisplayMode());
+		ren->SetColourMode(renderModeSource->GetColourMode());
+	}
 
 	int width, height;
 	VideoBuffer * tempThumb = NULL;
@@ -175,4 +183,3 @@ VideoBuffer * SaveRenderer::Render(unsigned char * saveData, int dataSize, bool 
 SaveRenderer::~SaveRenderer()
 {
 }
-

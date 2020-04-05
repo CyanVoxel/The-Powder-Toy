@@ -24,8 +24,7 @@ Textbox::Textbox(Point position, Point size, String textboxText, String textboxP
 	characterDown(0),
 	mouseDown(false),
 	masked(false),
-	border(true),
-	actionCallback(NULL)
+	border(true)
 {
 	placeHolder = textboxPlaceholder;
 
@@ -36,11 +35,6 @@ Textbox::Textbox(Point position, Point size, String textboxText, String textboxP
 	menu->AddItem(ContextMenuItem("Cut", 1, true));
 	menu->AddItem(ContextMenuItem("Copy", 0, true));
 	menu->AddItem(ContextMenuItem("Paste", 2, true));
-}
-
-Textbox::~Textbox()
-{
-	delete actionCallback;
 }
 
 void Textbox::SetHidden(bool hidden)
@@ -77,7 +71,7 @@ void Textbox::SetText(String newText)
 
 	if(cursor)
 	{
-		Graphics::PositionAtCharIndex(multiline?textLines:text, cursor, cursorPositionX, cursorPositionY);
+		textWrapper.Index2Point(textWrapper.Clear2Index(cursor), cursorPositionX, cursorPositionY);
 	}
 	else
 	{
@@ -128,7 +122,7 @@ void Textbox::OnContextMenuAction(int item)
 
 void Textbox::resetCursorPosition()
 {
-	Graphics::PositionAtCharIndex(multiline?textLines:text, cursor, cursorPositionX, cursorPositionY);
+	textWrapper.Index2Point(textWrapper.Clear2Index(cursor), cursorPositionX, cursorPositionY);
 }
 
 void Textbox::TabFocus()
@@ -169,26 +163,25 @@ void Textbox::cutSelection()
 		text = backingText;
 	}
 
-	if(multiline)
-		updateMultiline();
+	updateTextWrapper();
 	updateSelection();
-	TextPosition(text);
+	TextPosition(displayTextWrapper.WrappedText());
 
 	if(cursor)
 	{
-		Graphics::PositionAtCharIndex(multiline?textLines:text, cursor, cursorPositionX, cursorPositionY);
+		textWrapper.Index2Point(textWrapper.Clear2Index(cursor), cursorPositionX, cursorPositionY);
 	}
 	else
 	{
 		cursorPositionY = cursorPositionX = 0;
 	}
-	if(actionCallback)
-		actionCallback->TextChangedCallback(this);
+	if (actionCallback.change)
+		actionCallback.change();
 }
 
 void Textbox::pasteIntoSelection()
 {
-	String newText = format::CleanString(ClipboardPull().FromUtf8(), true, true, inputType != Multiline, inputType == Number || inputType == Numeric);
+	String newText = format::CleanString(ClipboardPull().FromUtf8(), false, true, inputType != Multiline, inputType == Number || inputType == Numeric);
 	if (HasSelection())
 	{
 		if (getLowerSelectionBound() < 0 || getHigherSelectionBound() > (int)backingText.length())
@@ -210,12 +203,19 @@ void Textbox::pasteIntoSelection()
 	if (!multiline && Graphics::textwidth(backingText + newText) > regionWidth)
 	{
 		int pLimit = regionWidth - Graphics::textwidth(backingText);
-		int cIndex = Graphics::CharIndexAtPosition(newText, pLimit, 0);
-
-		if (cIndex > 0)
-			newText = newText.Substr(0, cIndex);
-		else
-			newText = "";
+		int pWidth = 0;
+		auto it = newText.begin();
+		while (it != newText.end())
+		{
+			auto w = Graphics::CharWidth(*it);
+			if (pWidth + w > pLimit)
+			{
+				break;
+			}
+			pWidth += w;
+			++it;
+		}
+		newText = String(newText.begin(), it);
 	}
 
 	backingText.Insert(cursor, newText);
@@ -233,24 +233,20 @@ void Textbox::pasteIntoSelection()
 		text = backingText;
 	}
 
-	if(multiline)
-		updateMultiline();
+	updateTextWrapper();
 	updateSelection();
-	if(multiline)
-		TextPosition(textLines);
-	else
-		TextPosition(text);
+	TextPosition(displayTextWrapper.WrappedText());
 
 	if(cursor)
 	{
-		Graphics::PositionAtCharIndex(multiline?textLines:text, cursor, cursorPositionX, cursorPositionY);
+		textWrapper.Index2Point(textWrapper.Clear2Index(cursor), cursorPositionX, cursorPositionY);
 	}
 	else
 	{
 		cursorPositionY = cursorPositionX = 0;
 	}
-	if(actionCallback)
-		actionCallback->TextChangedCallback(this);
+	if (actionCallback.change)
+		actionCallback.change();
 }
 
 bool Textbox::CharacterValid(int character)
@@ -267,7 +263,7 @@ bool Textbox::CharacterValid(int character)
 				return true;
 		case All:
 		default:
-			return (character >= ' ' && character < 127);
+			return character >= ' ' && character <= 0x10FFFF && !(character >= 0xD800 && character <= 0xDFFF) && !(character >= 0xFDD0 && character <= 0xFDEF) && !((character & 0xFFFF) >= 0xFFFE);
 	}
 	return false;
 }
@@ -455,24 +451,20 @@ void Textbox::AfterTextChange(bool changed)
 		}
 	}
 
-	if (multiline)
-		updateMultiline();
+	updateTextWrapper();
 	updateSelection();
-	if (multiline)
-		TextPosition(textLines);
-	else
-		TextPosition(text);
+	TextPosition(displayTextWrapper.WrappedText());
 
 	if(cursor)
 	{
-		Graphics::PositionAtCharIndex(multiline?textLines:text, cursor, cursorPositionX, cursorPositionY);
+		textWrapper.Index2Point(textWrapper.Clear2Index(cursor), cursorPositionX, cursorPositionY);
 	}
 	else
 	{
 		cursorPositionY = cursorPositionX = 0;
 	}
-	if (changed && actionCallback)
-		actionCallback->TextChangedCallback(this);
+	if (changed && actionCallback.change)
+		actionCallback.change();
 }
 
 void Textbox::OnTextInput(String text)
@@ -502,7 +494,7 @@ void Textbox::OnTextInput(String text)
 			{
 				backingText.Insert(cursor, text);
 			}
-			cursor++;
+			cursor += text.length();
 		}
 		ClearSelection();
 		AfterTextChange(true);
@@ -515,10 +507,11 @@ void Textbox::OnMouseClick(int x, int y, unsigned button)
 	if (button != SDL_BUTTON_RIGHT)
 	{
 		mouseDown = true;
-		cursor = Graphics::CharIndexAtPosition(multiline?textLines:text, x-textPosition.X, y-textPosition.Y);
+		auto index = textWrapper.Point2Index(x-textPosition.X, y-textPosition.Y);
+		cursor = index.raw_index;
 		if(cursor)
 		{
-			Graphics::PositionAtCharIndex(multiline?textLines:text, cursor, cursorPositionX, cursorPositionY);
+			textWrapper.Index2Point(index, cursorPositionX, cursorPositionY);
 		}
 		else
 		{
@@ -538,10 +531,11 @@ void Textbox::OnMouseMoved(int localx, int localy, int dx, int dy)
 {
 	if(mouseDown)
 	{
-		cursor = Graphics::CharIndexAtPosition(multiline?textLines:text, localx-textPosition.X, localy-textPosition.Y);
+		auto index = textWrapper.Point2Index(localx-textPosition.X, localy-textPosition.Y);
+		cursor = index.raw_index;
 		if(cursor)
 		{
-			Graphics::PositionAtCharIndex(multiline?textLines:text, cursor, cursorPositionX, cursorPositionY);
+			textWrapper.Index2Point(index, cursorPositionX, cursorPositionY);
 		}
 		else
 		{

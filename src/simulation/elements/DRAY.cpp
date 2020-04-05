@@ -1,6 +1,8 @@
 #include "simulation/ElementCommon.h"
-//#TPT-Directive ElementClass Element_DRAY PT_DRAY 178
-Element_DRAY::Element_DRAY()
+
+static int update(UPDATE_FUNC_ARGS);
+
+void Element::Element_DRAY()
 {
 	Identifier = "DEFAULT_PT_DRAY";
 	Name = "DRAY";
@@ -26,11 +28,10 @@ Element_DRAY::Element_DRAY()
 
 	Weight = 100;
 
-	Temperature = R_TEMP + 273.15f;
 	HeatConduct = 0;
 	Description = "Duplicator ray. Replicates a line of particles in front of it.";
 
-	Properties = TYPE_SOLID|PROP_LIFE_DEC;
+	Properties = TYPE_SOLID | PROP_LIFE_DEC;
 
 	LowPressure = IPL;
 	LowPressureTransition = NT;
@@ -41,18 +42,18 @@ Element_DRAY::Element_DRAY()
 	HighTemperature = ITH;
 	HighTemperatureTransition = NT;
 
-	Update = &Element_DRAY::update;
-	Graphics = NULL;
+	Update = &update;
+	Graphics = nullptr; // is this needed?
+	CtypeDraw = &Element::ctypeDrawVInCtype;
 }
 
 //should probably be in Simulation.h
-bool InBounds(int x, int y)
+static bool InBounds(int x, int y)
 {
 	return (x>=0 && y>=0 && x<XRES && y<YRES);
 }
 
-//#TPT-Directive ElementHeader Element_DRAY static int update(UPDATE_FUNC_ARGS)
-int Element_DRAY::update(UPDATE_FUNC_ARGS)
+static int update(UPDATE_FUNC_ARGS)
 {
 	int ctype = TYP(parts[i].ctype), ctypeExtra = ID(parts[i].ctype), copyLength = parts[i].tmp, copySpaces = parts[i].tmp2;
 	if (copySpaces < 0)
@@ -167,5 +168,3 @@ int Element_DRAY::update(UPDATE_FUNC_ARGS)
 	}
 	return 0;
 }
-
-Element_DRAY::~Element_DRAY() {}

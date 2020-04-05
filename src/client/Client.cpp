@@ -102,7 +102,7 @@ Client::Client():
 		firstRun = true;
 }
 
-void Client::Initialise(ByteString proxyString)
+void Client::Initialise(ByteString proxyString, bool disableNetwork)
 {
 	if (GetPrefBool("version.update", false))
 	{
@@ -110,7 +110,10 @@ void Client::Initialise(ByteString proxyString)
 		update_finish();
 	}
 
-	http::RequestManager::Ref().Initialise(proxyString);
+#ifndef NOHTTP
+	if (!disableNetwork)
+		http::RequestManager::Ref().Initialise(proxyString);
+#endif
 
 	//Read stamps library
 	std::ifstream stampsLib;
@@ -922,8 +925,10 @@ void Client::Shutdown()
 	{
 		alternateVersionCheckRequest->Cancel();
 	}
-	
+
+#ifndef NOHTTP
 	http::RequestManager::Ref().Shutdown();
+#endif
 
 	//Save config
 	WritePrefs();
@@ -1024,23 +1029,12 @@ void Client::MoveStampToFront(ByteString stampID)
 SaveFile * Client::GetStamp(ByteString stampID)
 {
 	ByteString stampFile = ByteString(STAMPS_DIR PATH_SEP + stampID + ".stm");
-	SaveFile * file = new SaveFile(stampID);
-	if (!FileExists(stampFile))
-		stampFile = stampID;
-	if (FileExists(stampFile))
-	{
-		try
-		{
-			GameSave * tempSave = new GameSave(ReadFile(stampFile));
-			file->SetGameSave(tempSave);
-		}
-		catch (ParseException & e)
-		{
-			std::cerr << "Client: Invalid stamp file, " << stampID << " " << e.what() << std::endl;
-			file->SetLoadingError(ByteString(e.what()).FromUtf8());
-		}
-	}
-	return file;
+	SaveFile *saveFile = LoadSaveFile(stampFile);
+	if (!saveFile)
+		saveFile = LoadSaveFile(stampID);
+	else
+		saveFile->SetDisplayName(stampID.FromUtf8());
+	return saveFile;
 }
 
 void Client::DeleteStamp(ByteString stampID)
@@ -1135,6 +1129,7 @@ void Client::RescanStamps()
 				stampIDs.push_front(name.Substr(0, 10));
 		}
 		closedir(directory);
+		stampIDs.sort(std::greater<ByteString>());
 		updateStamps();
 	}
 }
@@ -1479,6 +1474,24 @@ SaveInfo * Client::GetSave(int saveID, int saveDate)
 		lastError = http::StatusText(dataStatus);
 	}
 	return NULL;
+}
+
+SaveFile * Client::LoadSaveFile(ByteString filename)
+{
+	if (!FileExists(filename))
+		return nullptr;
+	SaveFile * file = new SaveFile(filename);
+	try
+	{
+		GameSave * tempSave = new GameSave(ReadFile(filename));
+		file->SetGameSave(tempSave);
+	}
+	catch (ParseException & e)
+	{
+		std::cerr << "Client: Invalid save file '" << filename << "': " << e.what() << std::endl;
+		file->SetLoadingError(ByteString(e.what()).FromUtf8());
+	}
+	return file;
 }
 
 std::vector<std::pair<ByteString, int> > * Client::GetTags(int start, int count, String query, int & resultCount)
